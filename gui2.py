@@ -51,6 +51,12 @@ class SpectrumPlotWidget(pg.PlotWidget):
             intensity (array-like): Intensity values.
             metadata (dict): Metadata for annotation.
         """
+        # Temporarily disconnect the signal to prevent multiple calls
+        try:
+            self.sigXRangeChanged.disconnect(self.update_peaks)
+        except TypeError:
+            pass  # Signal was not connected
+
         self.current_mz = mz
         self.current_intensity = intensity
 
@@ -66,6 +72,9 @@ class SpectrumPlotWidget(pg.PlotWidget):
 
         # Initial peak detection and annotation
         self.update_peaks()
+
+        # Reconnect the signal
+        self.sigXRangeChanged.connect(self.update_peaks)
 
     def update_peaks(self):
         """
@@ -84,8 +93,6 @@ class SpectrumPlotWidget(pg.PlotWidget):
         intensity_filtered = self.current_intensity[mask]
 
         if len(mz_filtered) == 0:
-            # Clear scatter and annotations if no data in view
-            # self.peak_scatter.setData([])  # Already removed ScatterPlotItem
             self.clear_peak_annotations()
             return
 
@@ -93,8 +100,6 @@ class SpectrumPlotWidget(pg.PlotWidget):
         peaks, properties = find_peaks(intensity_filtered, height=0)
 
         if len(peaks) == 0:
-            # Clear scatter and annotations if no peaks found
-            # self.peak_scatter.setData([])  # Already removed ScatterPlotItem
             self.clear_peak_annotations()
             return
 
@@ -110,11 +115,10 @@ class SpectrumPlotWidget(pg.PlotWidget):
             top_peaks_mz = peak_mz
             top_peaks_intensity = peak_intensity
 
-        # Update scatter plot with peaks
-        # self.peak_scatter.setData(spots)  # Already removed ScatterPlotItem
+        # Clear existing annotations before adding new ones
+        self.clear_peak_annotations()
 
         # Add text annotations for each peak
-        self.clear_peak_annotations()
         for mz, intensity in zip(top_peaks_mz, top_peaks_intensity):
             text = pg.TextItem(f"{mz:.2f}", anchor=(0.5, 1.0), color='red')
             text.setPos(mz, intensity)
@@ -125,9 +129,14 @@ class SpectrumPlotWidget(pg.PlotWidget):
         """
         Removes existing peak annotations from the plot.
         """
+        print("Clearing peak annotations...")
         for text in self.peak_texts:
             self.removeItem(text)
+        print(f"Removed {len(self.peak_texts)} annotations.")
         self.peak_texts = []
+        print("peak_texts list cleared.")
+        self.update()  # Force the plot to refresh
+
 
 
 class FilterWidget(QWidget):
