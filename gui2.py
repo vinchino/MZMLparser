@@ -44,7 +44,7 @@ class SpectrumPlotWidget(pg.PlotWidget):
 
     def plot_spectrum(self, mz, intensity, metadata):
         """
-        Plots the spectrum and annotates metadata.
+        Plots the spectrum as vertical lines and annotates metadata.
 
         Args:
             mz (array-like): m/z values.
@@ -60,11 +60,19 @@ class SpectrumPlotWidget(pg.PlotWidget):
         self.current_mz = mz
         self.current_intensity = intensity
 
-        # Update spectrum curve
-        self.spectrum_curve.setData(mz, intensity)
+        # Create data for vertical lines
+        x_plot = np.repeat(mz, 2)
+        y_plot = np.zeros(2 * len(mz))
+        y_plot[1::2] = intensity
+
+        # Update spectrum curve with vertical lines
+        self.spectrum_curve.setData(x_plot, y_plot, connect='pairs')
+
+        # Auto-range the view to fit the new data
+        self.autoRange()  # <-- Added line
 
         # Update title with metadata
-        title = f"Spectrum Index: {metadata['Index Number']}"
+        title = f"Spectrum Index: {metadata.get('Index Number', 'N/A')}"
         self.setTitle(title, color='#000000', size='12pt')
 
         # Remove previous annotations
@@ -129,13 +137,14 @@ class SpectrumPlotWidget(pg.PlotWidget):
         """
         Removes existing peak annotations from the plot.
         """
-        print("Clearing peak annotations...")
+        #print("Clearing peak annotations...")
         for text in self.peak_texts:
             self.removeItem(text)
-        print(f"Removed {len(self.peak_texts)} annotations.")
+        #print(f"Removed {len(self.peak_texts)} annotations.")
         self.peak_texts = []
-        print("peak_texts list cleared.")
+        #print("peak_texts list cleared.")
         self.update()  # Force the plot to refresh
+
 
 
 
